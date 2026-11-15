@@ -100,21 +100,22 @@ GITEA_TEST_DATABASE=mssql TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea
 
 ### Running with the CI services
 
-[`tests/compose.yml`](../tests/compose.yml) defines the services the CI database jobs use,
-grouped by suite: `pgsql`, `mysql`, `mssql` and `unit`. Run a suite in a container next to its
-services, so the service hostnames resolve without editing `/etc/hosts`:
+To start the same services as a CI job, pick a suite: `pgsql`, `mysql`, `mssql` or `unit`.
+The services listen on `localhost` and are removed again with `make test-services-down`.
 
 ```bash
-make test-container COMPOSE_SUITE=mysql
+make test-services-up#pgsql
+GITEA_TEST_DATABASE=pgsql TEST_PGSQL_HOST=localhost:5432 TEST_MINIO_ENDPOINT=localhost:9000 TEST_LDAP=1 TEST_LDAP_HOST=localhost make test-integration#TestAuthLDAP
 ```
 
-Or start only the services and run tests on the host against the published ports:
+The `unit` suite provides the services that some backend unit tests need:
 
 ```bash
-make test-services-up COMPOSE_SUITE=pgsql
-GITEA_TEST_DATABASE=pgsql TEST_PGSQL_HOST=localhost:5432 TEST_MINIO_ENDPOINT=localhost:9000 TEST_LDAP_HOST=localhost make test-integration
-make test-services-down
+make test-services-up#unit
+TEST_MINIO_ENDPOINT=localhost:9000 TEST_ELASTICSEARCH_URL=http://localhost:9200 TEST_MEILISEARCH_URL=http://localhost:7700 go test ./modules/indexer/... ./modules/storage/...
 ```
+
+The Azure Blob storage tests also need `devstoreaccount1.azurite.local` to resolve to `127.0.0.1`.
 
 ### Running the database test workflow with Gitea Runner
 

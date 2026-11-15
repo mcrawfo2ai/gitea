@@ -1,21 +1,5 @@
-# Services and test runners matching .github/workflows/pull-db-tests.yml, see docs/testing.md
+# Services of .github/workflows/pull-db-tests.yml, grouped per suite, see docs/testing.md
 name: gitea-test
-
-x-runner: &runner
-  image: golang:1.27-bookworm
-  user: "${TEST_UID:-1000}:${TEST_GID:-1000}"
-  working_dir: /src
-  volumes:
-    - ..:/src
-    - go-cache:/go-cache
-  environment: &runner-env
-    HOME: /go-cache/home
-    GOPATH: /go-cache/gopath
-    GOCACHE: /go-cache/build
-    TAGS: bindata
-  depends_on: &runner-deps
-    go-cache-init:
-      condition: service_completed_successfully
 
 services:
   pgsql:
@@ -25,7 +9,7 @@ services:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
     tmpfs: [/var/lib/postgresql/data]
-    ports: ["127.0.0.1:${TEST_PGSQL_PORT:-5432}:5432"]
+    ports: ["127.0.0.1:5432:5432"]
     healthcheck:
       test: [CMD, pg_isready, -U, postgres]
       interval: 2s
@@ -34,7 +18,7 @@ services:
   ldap:
     image: gitea/test-openldap:latest@sha256:4ac633b01d684e6b2a458cc0c8530c92f9b3702f6e040ce5f365607df34fbda0
     profiles: [pgsql]
-    ports: ["127.0.0.1:${TEST_LDAP_PORT:-389}:389"]
+    ports: ["127.0.0.1:389:389"]
 
   mysql:
     image: bitnamilegacy/mysql:8.4@sha256:7089d796fc9b4629a628bd445e4afabe607351ee665444c3197bdeaed812ea65
@@ -43,15 +27,11 @@ services:
       ALLOW_EMPTY_PASSWORD: "true"
       MYSQL_DATABASE: testgitea
     tmpfs: [/bitnami/mysql/data]
-    ports: ["127.0.0.1:${TEST_MYSQL_PORT:-3306}:3306"]
+    ports: ["127.0.0.1:3306:3306"]
     healthcheck:
       test: [CMD-SHELL, mysqladmin ping -h 127.0.0.1 --silent]
       interval: 2s
       retries: 60
-
-  smtpimap:
-    image: tabascoterrier/docker-imap-devel:latest@sha256:3fb7cf50b47693e7b80f6f74abea2def4d7386016931d61359864de8a0aba551
-    profiles: [mysql]
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2019-latest@sha256:07d7dedecdbfcf6776035dc5eefb5bfd9aa1804b2f6b99f7dedb397d8a599069
@@ -61,7 +41,7 @@ services:
       ACCEPT_EULA: "Y"
       MSSQL_PID: Standard
       SA_PASSWORD: MwantsaSecurePassword1
-    ports: ["127.0.0.1:${TEST_MSSQL_PORT:-1433}:1433"]
+    ports: ["127.0.0.1:1433:1433"]
     healthcheck:
       test: [CMD-SHELL, "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$SA_PASSWORD\" -Q 'SELECT 1' || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -Q 'SELECT 1'"]
       interval: 5s
@@ -73,7 +53,7 @@ services:
     environment:
       MINIO_ROOT_USER: "123456"
       MINIO_ROOT_PASSWORD: "12345678"
-    ports: ["127.0.0.1:${TEST_MINIO_PORT:-9000}:9000"]
+    ports: ["127.0.0.1:9000:9000"]
     healthcheck:
       test: [CMD-SHELL, "bash -c 'echo > /dev/tcp/127.0.0.1/9000'"]
       interval: 2s
@@ -82,10 +62,7 @@ services:
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
     profiles: [mssql, unit]
-    networks:
-      default:
-        aliases: [devstoreaccount1.azurite.local] # https://github.com/Azure/Azurite/issues/1583
-    ports: ["127.0.0.1:${TEST_AZURITE_PORT:-10000}:10000"]
+    ports: ["127.0.0.1:10000:10000"]
     healthcheck:
       test: [CMD, node, -e, "require('net').connect(10000, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"]
       interval: 2s
@@ -100,7 +77,7 @@ services:
       xpack.ml.enabled: "false"
       ingest.geoip.downloader.enabled: "false"
       ES_JAVA_OPTS: -Xms1g -Xmx1g
-    ports: ["127.0.0.1:${TEST_ELASTICSEARCH_PORT:-9200}:9200"]
+    ports: ["127.0.0.1:9200:9200"]
     healthcheck:
       test: [CMD-SHELL, curl -fs http://127.0.0.1:9200/_cluster/health]
       interval: 5s
@@ -111,7 +88,7 @@ services:
     profiles: [unit]
     environment:
       MEILI_ENV: development
-    ports: ["127.0.0.1:${TEST_MEILISEARCH_PORT:-7700}:7700"]
+    ports: ["127.0.0.1:7700:7700"]
     healthcheck:
       test: [CMD-SHELL, "curl -fs http://127.0.0.1:7700/health || wget -qO- http://127.0.0.1:7700/health"]
       interval: 2s
@@ -120,69 +97,8 @@ services:
   redis:
     image: redis:8@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5
     profiles: [unit]
-    ports: ["127.0.0.1:6379:6379"] # tests hardcode 127.0.0.1:6379
+    ports: ["127.0.0.1:6379:6379"]
     healthcheck:
       test: [CMD, redis-cli, ping]
       interval: 2s
       retries: 30
-
-  go-cache-init:
-    image: golang:1.27-bookworm
-    profiles: [pgsql-run, mysql-run, mssql-run, unit-run]
-    volumes: [go-cache:/go-cache]
-    command: [sh, -c, "mkdir -p /go-cache/home && chown -R ${TEST_UID:-1000}:${TEST_GID:-1000} /go-cache"]
-
-  test-pgsql:
-    <<: *runner
-    profiles: [pgsql-run]
-    environment:
-      <<: *runner-env
-      GITEA_TEST_DATABASE: pgsql
-      TEST_LDAP: "1"
-    depends_on:
-      <<: *runner-deps
-      pgsql: {condition: service_healthy}
-      ldap: {condition: service_started}
-      minio: {condition: service_healthy}
-    command: [make, backend, test-migration, test-integration]
-
-  test-mysql:
-    <<: *runner
-    profiles: [mysql-run]
-    environment:
-      <<: *runner-env
-      GITEA_TEST_DATABASE: mysql
-    depends_on:
-      <<: *runner-deps
-      mysql: {condition: service_healthy}
-      elasticsearch: {condition: service_healthy}
-      smtpimap: {condition: service_started}
-    command: [make, backend, test-migration, test-integration]
-
-  test-mssql:
-    <<: *runner
-    profiles: [mssql-run]
-    environment:
-      <<: *runner-env
-      GITEA_TEST_DATABASE: mssql
-    depends_on:
-      <<: *runner-deps
-      mssql: {condition: service_healthy}
-      azurite: {condition: service_healthy}
-    command: [make, backend, test-migration, test-integration]
-
-  test-unit:
-    <<: *runner
-    profiles: [unit-run]
-    network_mode: service:redis # shares redis' loopback, other services still resolve by name
-    depends_on:
-      <<: *runner-deps
-      redis: {condition: service_healthy}
-      minio: {condition: service_healthy}
-      azurite: {condition: service_healthy}
-      elasticsearch: {condition: service_healthy}
-      meilisearch: {condition: service_healthy}
-    command: [sh, -c, "make generate-go && make test-backend"]
-
-volumes:
-  go-cache:

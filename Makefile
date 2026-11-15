@@ -178,6 +178,7 @@ help: Makefile ## print Makefile help information.
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-backend[#TestSpecificName]" "run unit test (sqlite only)"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for GITEA_TEST_DATABASE (sqlite, mysql, pgsql, mssql)"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-services-up#Suite" "start the CI test services of a suite (pgsql, mysql, mssql, unit)"
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files
@@ -473,20 +474,14 @@ playwright: deps-frontend
 test-e2e: playwright frontend backend
 	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
-COMPOSE_SUITE ?= pgsql
-COMPOSE_TEST := TEST_UID=$(shell id -u) TEST_GID=$(shell id -g) $(CONTAINER_RUNTIME) compose -f tests/compose.yml
-
-.PHONY: test-services-up
-test-services-up: ## start the test services of COMPOSE_SUITE (pgsql, mysql, mssql, unit)
-	$(COMPOSE_TEST) --profile $(COMPOSE_SUITE) up -d --wait
+TEST_SERVICES_GOALS := $(filter test-services-up$(HASH)%,$(MAKECMDGOALS))
+.PHONY: $(TEST_SERVICES_GOALS)
+$(TEST_SERVICES_GOALS): test-services-up$(HASH)%:
+	$(CONTAINER_RUNTIME) compose -f tests/compose.yml --profile '$*' up -d --wait
 
 .PHONY: test-services-down
 test-services-down: ## stop and remove all test services
-	$(COMPOSE_TEST) --profile '*' down --volumes --remove-orphans
-
-.PHONY: test-container
-test-container: ## run the COMPOSE_SUITE tests in a container next to its services
-	$(COMPOSE_TEST) --profile $(COMPOSE_SUITE) --profile $(COMPOSE_SUITE)-run run --rm test-$(COMPOSE_SUITE)
+	$(CONTAINER_RUNTIME) compose -f tests/compose.yml --profile '*' down --remove-orphans
 
 .PHONY: build
 build: frontend backend ## build everything
