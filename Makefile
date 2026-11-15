@@ -473,6 +473,21 @@ playwright: deps-frontend
 test-e2e: playwright frontend backend
 	@CONTAINER_RUNTIME=$(CONTAINER_RUNTIME) EXECUTABLE=$(EXECUTABLE) ./tools/test-e2e.sh $(GITEA_TEST_E2E_FLAGS)
 
+COMPOSE_SUITE ?= pgsql
+COMPOSE_TEST := TEST_UID=$(shell id -u) TEST_GID=$(shell id -g) $(CONTAINER_RUNTIME) compose -f tests/compose.yml
+
+.PHONY: test-services-up
+test-services-up: ## start the test services of COMPOSE_SUITE (pgsql, mysql, mssql, unit)
+	$(COMPOSE_TEST) --profile $(COMPOSE_SUITE) up -d --wait
+
+.PHONY: test-services-down
+test-services-down: ## stop and remove all test services
+	$(COMPOSE_TEST) --profile '*' down --volumes --remove-orphans
+
+.PHONY: test-container
+test-container: ## run the COMPOSE_SUITE tests in a container next to its services
+	$(COMPOSE_TEST) --profile $(COMPOSE_SUITE) --profile $(COMPOSE_SUITE)-run run --rm test-$(COMPOSE_SUITE)
+
 .PHONY: build
 build: frontend backend ## build everything
 

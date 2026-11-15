@@ -98,6 +98,24 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_PID=Standard" -e "SA_PASSWORD=MwantsaSec
 GITEA_TEST_DATABASE=mssql TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-integration
 ```
 
+### Running with the CI services
+
+[`tests/compose.yml`](../tests/compose.yml) defines the services the CI database jobs use,
+grouped by suite: `pgsql`, `mysql`, `mssql` and `unit`. Run a suite in a container next to its
+services, so the service hostnames resolve without editing `/etc/hosts`:
+
+```bash
+make test-container COMPOSE_SUITE=mysql
+```
+
+Or start only the services and run tests on the host against the published ports:
+
+```bash
+make test-services-up COMPOSE_SUITE=pgsql
+GITEA_TEST_DATABASE=pgsql TEST_PGSQL_HOST=localhost:5432 TEST_MINIO_ENDPOINT=localhost:9000 TEST_LDAP_HOST=localhost make test-integration
+make test-services-down
+```
+
 ### Running the database test workflow with Gitea Runner
 
 The CI database test jobs can be run locally with
