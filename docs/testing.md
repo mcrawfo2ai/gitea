@@ -100,7 +100,7 @@ GITEA_TEST_DATABASE=mssql TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea
 
 ### Running with the CI services
 
-To start the same services as a CI job, pick a suite: `pgsql`, `mysql`, `mssql` or `unit`.
+To start the same services as a CI job, pick a suite: `pgsql`, `mysql`, `mssql` or `backend`.
 The services listen on `localhost` and are removed again with `make test-services-down`.
 
 ```bash
@@ -108,10 +108,10 @@ make test-services-up#pgsql
 GITEA_TEST_DATABASE=pgsql TEST_PGSQL_HOST=localhost:5432 TEST_MINIO_ENDPOINT=localhost:9000 TEST_LDAP=1 TEST_LDAP_HOST=localhost make test-integration#TestAuthLDAP
 ```
 
-The `unit` suite provides the services that some backend unit tests need:
+The `backend` suite provides the services that some `make test-backend` tests need:
 
 ```bash
-make test-services-up#unit
+make test-services-up#backend
 TEST_MINIO_ENDPOINT=localhost:9000 TEST_ELASTICSEARCH_URL=http://localhost:9200 TEST_MEILISEARCH_URL=http://localhost:7700 go test ./modules/indexer/... ./modules/storage/...
 ```
 

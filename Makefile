@@ -178,7 +178,7 @@ help: Makefile ## print Makefile help information.
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-e2e" "test end to end using playwright"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-backend[#TestSpecificName]" "run unit test (sqlite only)"
 	@printf "  \033[36m%-46s\033[0m %s\n" "test-integration[#TestSpecificName]" "run integration test for GITEA_TEST_DATABASE (sqlite, mysql, pgsql, mssql)"
-	@printf "  \033[36m%-46s\033[0m %s\n" "test-services-up#Suite" "start the CI test services of a suite (pgsql, mysql, mssql, unit)"
+	@printf "  \033[36m%-46s\033[0m %s\n" "test-services-up#Suite" "start the CI test services of a suite (pgsql, mysql, mssql, backend)"
 
 .PHONY: clean-all
 clean-all: clean ## delete backend, frontend and integration files

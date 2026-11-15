@@ -49,7 +49,7 @@ services:
 
   minio:
     image: bitnamilegacy/minio:2025.7.23@sha256:8935e75fa5d11295c17171e4aa49efe390a1193cd7f12e4d21b92af9ffef09d7
-    profiles: [pgsql, unit]
+    profiles: [pgsql, backend]
     environment:
       MINIO_ROOT_USER: "123456"
       MINIO_ROOT_PASSWORD: "12345678"
@@ -61,7 +61,7 @@ services:
 
   azurite:
     image: mcr.microsoft.com/azure-storage/azurite:latest@sha256:f9791d0a0613e93057c06ae31f7ac0c0222f0530590e67e020b0986c66a36fa6
-    profiles: [mssql, unit]
+    profiles: [mssql, backend]
     ports: ["127.0.0.1:10000:10000"]
     healthcheck:
       test: [CMD, node, -e, "require('net').connect(10000, '127.0.0.1').on('connect', () => process.exit(0)).on('error', () => process.exit(1))"]
@@ -70,7 +70,7 @@ services:
 
   elasticsearch:
     image: elasticsearch:8.19.23@sha256:3f4d63c59ca5a05b535179dfcced47a514119e351fa81653f69902beacae90c9
-    profiles: [mysql, unit]
+    profiles: [mysql, backend]
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -85,7 +85,7 @@ services:
 
   meilisearch:
     image: getmeili/meilisearch:v1@sha256:c94e58ca09662dd6e65e8f1b0fd145767be3da7d5422a863a27b8d2b68e090c9
-    profiles: [unit]
+    profiles: [backend]
     environment:
       MEILI_ENV: development
     ports: ["127.0.0.1:7700:7700"]
@@ -96,7 +96,7 @@ services:
 
   redis:
     image: redis:8@sha256:298e5b3bc566bade82f46ad5511777a4a07a294097ce16ada2f6a42be5239df5
-    profiles: [unit]
+    profiles: [backend]
     ports: ["127.0.0.1:6379:6379"]
     healthcheck:
       test: [CMD, redis-cli, ping]
